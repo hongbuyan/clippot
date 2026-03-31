@@ -1,4 +1,4 @@
-# Clippot v1.0 ✂️ / 剪贴宝 v1.0
+# Clippot ✂️ / 剪贴宝
 
 <div align="center">
 
@@ -9,7 +9,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![License: Non-Commercial](https://img.shields.io/badge/License-Non--Commercial-yellow)](LICENSE)
-[![GitHub Release](https://img.shields.io/badge/release-v1.0-orange)](https://github.com/hongbuyan/clippot/releases)
+[![GitHub Release](https://img.shields.io/badge/release-latest-orange)](https://github.com/hongbuyan/clippot/releases)
 [![AI Built](https://img.shields.io/badge/AI%20Built-3A%E5%A4%A7%E4%BD%9C-red)](https://github.com/hongbuyan/clippot)
 [![GitHub Stars](https://img.shields.io/github/stars/hongbuyan/clippot?style=social)](https://github.com/hongbuyan/clippot/stargazers)
 
@@ -232,7 +232,7 @@ We welcome contributions! Here's how you can help:
 ---
 
 <div align="center">
-  <h2>🎉 Clippot v1.0 / 剪贴宝 v1.0 🎉</h2>
+  <h2>🎉 Clippot / 剪贴宝 🎉</h2>
   <p>
     <strong>🔥 <a href="https://github.com/hongbuyan/clippot/releases">立即下载 / Download Now</a></strong> · 
     <strong>🐛 <a href="https://github.com/hongbuyan/clippot/issues">报告问题 / Report Issues</a></strong> · 
