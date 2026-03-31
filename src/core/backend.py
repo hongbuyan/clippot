@@ -7,8 +7,6 @@ import json
 import glob
 from datetime import datetime
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 MAX_VOLUME_SIZE = 5 * 1024 * 1024  # 5MB
 
@@ -22,21 +20,16 @@ def get_app_dir():
         return os.path.join(os.path.dirname(__file__), '..', '..')
 
 class ClipboardBackend:
-    def __init__(self, password=None, key=None):
+    def __init__(self, key):
         app_dir = get_app_dir()
         self.data_dir = os.path.join(app_dir, 'data')
         self.db_base_name = 'clipboard_history'
         self.config_file = os.path.join(app_dir, 'config.json')
         
-        if key:
-            if isinstance(key, str):
-                self.key = key.encode()
-            else:
-                self.key = key
-        elif password:
-            self.key = self._derive_key(password)
+        if isinstance(key, str):
+            self.key = key.encode()
         else:
-            raise ValueError("必须提供密码或密钥")
+            self.key = key
             
         self.cipher = Fernet(self.key)
         self._init_all_volumes()
@@ -141,15 +134,6 @@ class ClipboardBackend:
         
         if not volumes:
             self._init_volume(self._get_db_name(1))
-
-    def _derive_key(self, password):
-        """生成加密密钥"""
-        password_bytes = password.encode()
-        salt = b'static_salt_for_demo_only' 
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(), length=32, salt=salt, iterations=100000,
-        )
-        return base64.urlsafe_b64encode(kdf.derive(password_bytes))
 
     def _get_last_record_from_all_volumes(self):
         """从所有卷中获取最后一条记录"""

@@ -20,8 +20,9 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.fernet import Fernet
 import base64
 
-# 内置盐（代码混淆后难以提取）
-FIXED_SALT = b'Clippot_v1.0_Secret_Salt_2024!@#$%^&*()_+-=[]{}|;:,.<>?~`Xk9#mP2$vL8@nQ5&wR7!tY3'
+# 内置盐（请务必修改为您自己的随机字符串！）
+# 建议使用 64 字节以上的随机字符串
+FIXED_SALT = b'YOUR_SECRET_SALT_HERE_PLEASE_REPLACE_WITH_YOUR_OWN_RANDOM_STRING_64BYTES_MINIMUM_RECOMMENDED'
 
 def derive_key(random_part: str) -> str:
     """

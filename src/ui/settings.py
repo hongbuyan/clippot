@@ -805,6 +805,10 @@ class SettingsWindow(QDialog):
                     else:
                         install_dir = os.path.dirname(os.path.dirname(__file__))
                     
+                    # 获取桌面路径
+                    desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+                    shortcut_path = os.path.join(desktop, "Clippot.lnk")
+                    
                     # 创建卸载脚本
                     uninstall_script = os.path.join(install_dir, 'uninstall.bat')
                     uninstall_content = f'''@echo off
@@ -812,6 +816,7 @@ chcp 65001 >nul
 echo 正在卸载 Clippot...
 timeout /t 2 /nobreak >nul
 taskkill /f /im Clippot.exe >nul 2>&1
+del /f /q "{shortcut_path}" >nul 2>&1
 rmdir /s /q "{install_dir}"
 del "%~f0"
 '''

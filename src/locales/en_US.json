@@ -184,5 +184,16 @@
   "show_all_records": "Show All Records",
   "show_limited_records": "Showing first {count} records",
   "load_more": "Load More",
-  "total_records": "Total {total} records"
+  "total_records": "Total {total} records",
+  "text_viewer_title": "Text Selection",
+  "select_all": "Select All",
+  "close": "Close",
+  "select_text_first": "Please select text first",
+  "context_menu_select_text": "Select Text",
+  "context_menu_delete": "Delete",
+  "context_menu_more": "More",
+  "context_menu_delete_today": "Delete Today",
+  "context_menu_delete_7days": "Delete Last 7 Days",
+  "context_menu_delete_30days": "Delete Last 30 Days",
+  "context_menu_delete_all": "Delete All"
 }

@@ -64,13 +64,7 @@ class CleanTextEdit(QTextEdit):
         """重写键盘事件，捕获Ctrl+V快捷键"""
         from PySide6.QtGui import QKeySequence
         from PySide6.QtCore import Qt
-        
-        # 检查是否是Ctrl+V粘贴快捷键
-        if event.matches(QKeySequence.Paste):
-            self.paste()  # 调用我们重写的paste方法
-            event.accept()
-        else:
-            super().keyPressEvent(event)
+      
         
     def paste(self):
         """重写粘贴方法，执行智能清洗"""
@@ -2052,3 +2046,275 @@ class NoteEditWindow(QDialog):
             self.content_edit.language_combo.setCurrentText(current_language)
         else:
             self.content_edit.language_combo.setCurrentText(self.language_manager.get_text("lang_plain_text"))
+
+
+class TextSelectionWindow(QWidget):
+    """文字选取窗口 - 非模态窗口显示粘贴板内容，支持自由选取复制"""
+    
+    def __init__(self, text_content, theme_mode='dark', theme_colors=None, language_manager=None, parent=None):
+        super().__init__(parent)
+        self.text_content = text_content
+        self.theme_mode = theme_mode
+        self.theme_colors = theme_colors or {}
+        self.language_manager = language_manager
+        
+        # 设置窗口标志 - 非模态，有原生标题栏和关闭按钮
+        self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint)
+        
+        # 设置窗口标题
+        self.setWindowTitle("选取文字" if language_manager and hasattr(language_manager, 'current_language') and language_manager.current_language == 'zh' else "Select Text")
+        
+        # 设置窗口大小
+        self.resize(500, 400)
+        
+        # 设置Windows原生标题栏颜色
+        self._set_title_bar_color()
+        
+        self.setup_ui()
+        self.apply_theme()
+        
+    def setup_ui(self):
+        """设置UI组件"""
+        # 主布局
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(5)
+        
+        # 创建文本编辑区域 - 使用QTextEdit支持文本选取
+        self.text_edit = QTextEdit(self)
+        self.text_edit.setPlainText(self.text_content)
+        self.text_edit.setReadOnly(False)  # 允许编辑以便选取
+        
+        # 设置文本编辑器的样式
+        self.text_edit.setStyleSheet("""
+            QTextEdit {
+                border: 1px solid #CCCCCC;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+        """)
+        
+        main_layout.addWidget(self.text_edit)
+        
+        # 底部按钮区域
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        # 复制选中按钮
+        copy_btn = QPushButton("复制选中" if self.language_manager and hasattr(self.language_manager, 'current_language') and self.language_manager.current_language == 'zh' else "Copy Selected")
+        copy_btn.setCursor(Qt.PointingHandCursor)
+        copy_btn.clicked.connect(self.copy_selected_text)
+        copy_btn.setStyleSheet("""
+            QPushButton {
+                padding: 6px 16px;
+                background-color: #4A90E2;
+                border: none;
+                border-radius: 4px;
+                font-size: 13px;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #357ABD;
+            }
+        """)
+        button_layout.addWidget(copy_btn)
+        
+        # 复制全部按钮
+        copy_all_btn = QPushButton("复制全部" if self.language_manager and hasattr(self.language_manager, 'current_language') and self.language_manager.current_language == 'zh' else "Copy All")
+        copy_all_btn.setCursor(Qt.PointingHandCursor)
+        copy_all_btn.clicked.connect(self.copy_all_text)
+        copy_all_btn.setStyleSheet("""
+            QPushButton {
+                padding: 6px 16px;
+                background-color: #5A9FF2;
+                border: none;
+                border-radius: 4px;
+                font-size: 13px;
+                color: white;
+            }
+            QPushButton:hover {
+                background-color: #4A90E2;
+            }
+        """)
+        button_layout.addWidget(copy_all_btn)
+        
+        # 关闭按钮
+        close_btn = QPushButton("关闭" if self.language_manager and hasattr(self.language_manager, 'current_language') and self.language_manager.current_language == 'zh' else "Close")
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.clicked.connect(self.close)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                padding: 6px 16px;
+                background-color: #F5F5F5;
+                border: 1px solid #DDDDDD;
+                border-radius: 4px;
+                font-size: 13px;
+                color: #666666;
+            }
+            QPushButton:hover {
+                background-color: #EEEEEE;
+            }
+        """)
+        button_layout.addWidget(close_btn)
+        
+        main_layout.addLayout(button_layout)
+        
+    def apply_theme(self):
+        """应用主题样式"""
+        colors = self.theme_colors.get(self.theme_mode, self.theme_colors.get('dark', {}))
+        
+        if self.theme_mode == 'dark':
+            # 黑夜模式
+            bg_color = colors.get('card_bg', '#2D2D2D')
+            text_color = colors.get('text_color', '#E0E0E0')
+            border_color = colors.get('border_color', '#4D4D4D')
+            
+            self.setStyleSheet(f"""
+                QWidget {{
+                    background-color: {bg_color};
+                    color: {text_color};
+                }}
+                QTextEdit {{
+                    background-color: #1A1A1A;
+                    color: {text_color};
+                    border: 1px solid {border_color};
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                }}
+                QPushButton {{
+                    padding: 6px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 13px;
+                }}
+            """)
+        else:
+            # 白天模式
+            bg_color = colors.get('card_bg', '#FFFFFF')
+            text_color = colors.get('text_color', '#333333')
+            border_color = colors.get('border_color', '#d0d0ff')
+            
+            self.setStyleSheet(f"""
+                QWidget {{
+                    background-color: {bg_color};
+                    color: {text_color};
+                }}
+                QTextEdit {{
+                    background-color: #FFFFFF;
+                    color: {text_color};
+                    border: 1px solid {border_color};
+                    border-radius: 4px;
+                    padding: 8px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                }}
+                QPushButton {{
+                    padding: 6px 16px;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 13px;
+                }}
+            """)
+            
+    def _set_title_bar_color(self):
+        """设置Windows原生标题栏颜色"""
+        if sys.platform == 'win32':
+            try:
+                import ctypes
+                from ctypes import wintypes
+                
+                # Windows API 常量
+                DWMWA_CAPTION_COLOR = 35
+                DWMWA_TEXT_COLOR = 36
+                
+                # 获取窗口句柄
+                hwnd = int(self.winId())
+                
+                if self.theme_mode == 'dark':
+                    # 黑夜模式 - 深色标题栏
+                    caption_color = 0x002D2D2D  # 深灰色 (AABBGGRR 格式)
+                    text_color = 0x00E0E0E0     # 浅色文字
+                else:
+                    # 白天模式 - 白色标题栏
+                    caption_color = 0x00FFFFFF  # 白色
+                    text_color = 0x00000000     # 黑色文字
+                
+                # 使用 DwmSetWindowAttribute 设置标题栏颜色
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd, 
+                    DWMWA_CAPTION_COLOR, 
+                    ctypes.byref(ctypes.c_int(caption_color)), 
+                    ctypes.sizeof(ctypes.c_int)
+                )
+                
+                # 设置标题栏文字颜色
+                ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                    hwnd, 
+                    DWMWA_TEXT_COLOR, 
+                    ctypes.byref(ctypes.c_int(text_color)), 
+                    ctypes.sizeof(ctypes.c_int)
+                )
+            except Exception as e:
+                print(f"设置标题栏颜色失败: {e}")
+                
+    def showEvent(self, event):
+        """窗口显示时确保标题栏颜色正确"""
+        super().showEvent(event)
+        # 延迟设置标题栏颜色
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, self._set_title_bar_color)
+        
+    def copy_selected_text(self):
+        """复制选中的文本到粘贴板"""
+        selected_text = self.text_edit.textCursor().selectedText()
+        if selected_text:
+            from PySide6.QtWidgets import QApplication
+            clipboard = QApplication.clipboard()
+            clipboard.setText(selected_text)
+            
+            # 显示提示
+            self.show_toast("已复制到粘贴板" if self.language_manager and hasattr(self.language_manager, 'current_language') and self.language_manager.current_language == 'zh' else "Copied to clipboard")
+        else:
+            self.show_toast("请先选取文字" if self.language_manager and hasattr(self.language_manager, 'current_language') and self.language_manager.current_language == 'zh' else "Please select text first")
+            
+    def copy_all_text(self):
+        """复制全部文本到粘贴板"""
+        from PySide6.QtWidgets import QApplication
+        clipboard = QApplication.clipboard()
+        clipboard.setText(self.text_edit.toPlainText())
+        
+        # 显示提示
+        self.show_toast("已复制全部内容" if self.language_manager and hasattr(self.language_manager, 'current_language') and self.language_manager.current_language == 'zh' else "All content copied")
+        
+    def show_toast(self, message):
+        """显示提示消息"""
+        from PySide6.QtWidgets import QLabel
+        from PySide6.QtCore import QTimer
+        
+        # 创建提示标签
+        toast = QLabel(message, self)
+        toast.setAlignment(Qt.AlignCenter)
+        toast.setStyleSheet("""
+            QLabel {
+                background-color: rgba(0, 0, 0, 180);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 13px;
+            }
+        """)
+        toast.adjustSize()
+        
+        # 居中显示
+        x = (self.width() - toast.width()) // 2
+        y = (self.height() - toast.height()) // 2
+        toast.move(x, y)
+        toast.show()
+        toast.raise_()
+        
+        # 1.5秒后自动隐藏
+        QTimer.singleShot(1500, toast.deleteLater)

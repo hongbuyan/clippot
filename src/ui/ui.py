@@ -16,6 +16,7 @@ from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QRect, QEasingCurve, 
 from PySide6.QtGui import QColor, QCursor, QGuiApplication, QIcon, QPixmap, QAction
 from qtawesome import IconicFont
 from src.core.category import CategoryManager
+from src.ui.text_viewer_dialog import TextViewerDialog
 
 def get_config_path():
     """获取配置文件路径（支持打包后路径）"""
@@ -243,6 +244,7 @@ class MessageWidget(QFrame):
         self.index = None  # 消息索引，用于删除操作
         self.theme_colors = theme_colors
         self.current_theme_mode = current_theme_mode
+        self.text_viewer = None  # 文字选取窗口实例
         # 导入qtawesome
         import qtawesome as qta
         self.qta = qta
@@ -782,64 +784,121 @@ class MessageWidget(QFrame):
         if parent_window:
             # 创建右键菜单
             context_menu = QMenu(self)
-            context_menu.setStyleSheet("""
-                QMenu {
-                    background-color: white;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                    padding: 4px;
-                }
-                QMenu::item {
-                    padding: 8px 20px;
-                    border-radius: 4px;
-                    font-size: 13px;
-                }
-                QMenu::item:selected {
-                    background-color: #f0f0f0;
-                }
-            """)
+            
+            # 根据主题设置菜单样式
+            if parent_window.current_theme_mode == 'dark':
+                context_menu.setStyleSheet("""
+                    QMenu {
+                        background-color: #2D2D2D;
+                        border: 1px solid #4D4D4D;
+                        border-radius: 8px;
+                        padding: 4px;
+                    }
+                    QMenu::item {
+                        padding: 8px 20px;
+                        border-radius: 4px;
+                        font-size: 13px;
+                        color: #E0E0E0;
+                    }
+                    QMenu::item:selected {
+                        background-color: #4D4D4D;
+                    }
+                """)
+            else:
+                context_menu.setStyleSheet("""
+                    QMenu {
+                        background-color: white;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        padding: 4px;
+                    }
+                    QMenu::item {
+                        padding: 8px 20px;
+                        border-radius: 4px;
+                        font-size: 13px;
+                    }
+                    QMenu::item:selected {
+                        background-color: #f0f0f0;
+                    }
+                """)
+            
+            # 选取文字（只对文本内容显示）
+            if self.content_type == "text":
+                select_text_text = self.language_manager.get_text("context_menu_select_text") if self.language_manager else "选取文字"
+                select_text_action = context_menu.addAction(select_text_text)
+                select_text_action.triggered.connect(lambda: self.open_text_selection_window(parent_window))
+                
+                # 分隔线
+                context_menu.addSeparator()
             
             # 删除（直接删除当前项）
-            delete_action = context_menu.addAction("删除")
+            delete_text = self.language_manager.get_text("context_menu_delete") if self.language_manager else "删除"
+            delete_action = context_menu.addAction(delete_text)
             delete_action.triggered.connect(lambda: self.delete_message(parent_window))
             
             # 分隔线
             context_menu.addSeparator()
             
             # 更多选项（批量删除）
-            more_action = context_menu.addAction("更多")
+            more_text = self.language_manager.get_text("context_menu_more") if self.language_manager else "更多"
+            more_action = context_menu.addAction(more_text)
             more_menu = QMenu(self)
-            more_menu.setStyleSheet("""
-                QMenu {
-                    background-color: white;
-                    border: 1px solid #e0e0e0;
-                    border-radius: 8px;
-                    padding: 4px;
-                }
-                QMenu::item {
-                    padding: 8px 20px;
-                    border-radius: 4px;
-                    font-size: 13px;
-                }
-                QMenu::item:selected {
-                    background-color: #f0f0f0;
-                }
-            """)
+            
+            # 根据主题设置子菜单样式
+            if parent_window.current_theme_mode == 'dark':
+                more_menu.setStyleSheet("""
+                    QMenu {
+                        background-color: #2D2D2D;
+                        border: 1px solid #4D4D4D;
+                        border-radius: 8px;
+                        padding: 4px;
+                    }
+                    QMenu::item {
+                        padding: 8px 20px;
+                        border-radius: 4px;
+                        font-size: 13px;
+                        color: #E0E0E0;
+                    }
+                    QMenu::item:selected {
+                        background-color: #4D4D4D;
+                    }
+                """)
+            else:
+                more_menu.setStyleSheet("""
+                    QMenu {
+                        background-color: white;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        padding: 4px;
+                    }
+                    QMenu::item {
+                        padding: 8px 20px;
+                        border-radius: 4px;
+                        font-size: 13px;
+                    }
+                    QMenu::item:selected {
+                        background-color: #f0f0f0;
+                    }
+                """)
             
             # 删除今天
-            delete_today_action = more_menu.addAction("删除今天")
+            delete_today_text = self.language_manager.get_text("context_menu_delete_today") if self.language_manager else "删除今天"
+            delete_today_action = more_menu.addAction(delete_today_text)
             delete_today_action.triggered.connect(lambda: parent_window.batch_delete_by_time('today'))
             
             # 删除近7天
-            delete_7days_action = more_menu.addAction("删除近7天")
+            delete_7days_text = self.language_manager.get_text("context_menu_delete_7days") if self.language_manager else "删除近7天"
+            delete_7days_action = more_menu.addAction(delete_7days_text)
             delete_7days_action.triggered.connect(lambda: parent_window.batch_delete_by_time('7days'))
             
             # 删除近30天
-            delete_30days_action = more_menu.addAction("删除近30天")
+            delete_30days_text = self.language_manager.get_text("context_menu_delete_30days") if self.language_manager else "删除近30天"
+            delete_30days_action = more_menu.addAction(delete_30days_text)
             delete_30days_action.triggered.connect(lambda: parent_window.batch_delete_by_time('30days'))
             
             # 删除全部
-            delete_all_action = more_menu.addAction("删除全部")
+            delete_all_text = self.language_manager.get_text("context_menu_delete_all") if self.language_manager else "删除全部"
+            delete_all_action = more_menu.addAction(delete_all_text)
             delete_all_action.triggered.connect(lambda: parent_window.batch_delete_by_time('all'))
             
             more_action.setMenu(more_menu)
@@ -936,6 +995,23 @@ class MessageWidget(QFrame):
         """删除消息"""
         if self.index is not None:
             parent_window.delete_message_by_index(self.index)
+    
+    def open_text_selection_window(self, parent_window):
+        """打开文字选取窗口"""
+        # 如果窗口已存在，先关闭它
+        if self.text_viewer is not None:
+            self.text_viewer.close()
+            self.text_viewer = None
+        
+        # 创建并显示文字选取窗口 - 非模态
+        self.text_viewer = TextViewerDialog(
+            text=self.text,
+            theme_mode=parent_window.current_theme_mode,
+            language_manager=self.language_manager,
+            parent=None  # 设置为None使其独立于主窗口
+        )
+        # 非模态显示，不影响主窗口使用
+        self.text_viewer.show()
         
     def update_favorite_style(self):
         """根据收藏状态更新按钮样式"""
@@ -1467,7 +1543,7 @@ class ModernClipboardUI(QMainWindow):
         # 初始化系统托盘
         self.init_system_tray()
         
-        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint)
+        self.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
         self.setAttribute(Qt.WA_TranslucentBackground, False)  # 禁用透明背景，使用原生背景
         
         # 隐藏标题栏但保留窗口功能
@@ -3779,6 +3855,79 @@ class ModernClipboardUI(QMainWindow):
             self.animation.finished.disconnect()
         except:
             pass
+    
+    def force_hide(self):
+        """强制隐藏窗口（不检测鼠标位置）- 用于最小化按钮"""
+        # 如果窗口已固定，不执行隐藏
+        if self.is_pinned:
+            return
+        
+        if self.y() < -self.height() and self.x() < -self.width(): 
+            return
+        
+        # 保存当前窗口位置，用于后续的触发检测
+        self.original_pos = self.geometry()
+        
+        # 保存当前位置，用于设置窗口标志后恢复
+        current_rect = self.geometry()
+        
+        screen_geometry = QGuiApplication.primaryScreen().availableGeometry()
+        
+        # 根据dock_edge设置隐藏方向
+        if self.dock_edge == "top":
+            # 向上隐藏
+            target_rect = QRect(current_rect.x(), -current_rect.height() - 20, current_rect.width(), current_rect.height())
+        elif self.dock_edge == "bottom":
+            # 向下隐藏，确保完全隐藏
+            target_rect = QRect(current_rect.x(), screen_geometry.height() + current_rect.height() + 20, current_rect.width(), current_rect.height())
+        elif self.dock_edge == "left":
+            # 向左隐藏
+            target_rect = QRect(-current_rect.width() - 20, current_rect.y(), current_rect.width(), current_rect.height())
+        elif self.dock_edge == "right":
+            # 向右隐藏
+            target_rect = QRect(screen_geometry.width() + 20, current_rect.y(), current_rect.width(), current_rect.height())
+        else:
+            # 默认向上隐藏
+            target_rect = QRect(current_rect.x(), -current_rect.height() - 20, current_rect.width(), current_rect.height())
+        
+        # 先开始动画，不改变窗口标志，避免闪烁
+        self.animation.setStartValue(current_rect)
+        self.animation.setEndValue(target_rect)
+        self.animation.start()
+        self.is_hidden = True
+        self.hide_timer.stop()
+        
+        # 动画结束后再改变窗口标志，隐藏任务栏图标
+        self.animation.finished.connect(lambda: self._on_hide_animation_finished())
+        
+        # 清空搜索框
+        self.search_box.clear()
+        self.is_searching = False
+        
+        # 总是关闭日期筛选功能，无论是否在使用
+        if hasattr(self, 'date_search_widget') and self.date_search_widget.isVisible():
+            self.date_search_widget.hide()
+            # 重置日期搜索状态
+            self.reset_date_search()
+            # 重置日期按钮图标颜色为灰色
+            self.date_btn.setIcon(self.qta.icon('fa5s.calendar', color='#333333'))
+        
+        # 根据dockedge和设置显示触发条
+        if self.dock_edge in ["top", "bottom", "left", "right"]:
+            # 检查小白条可见性设置
+            trigger_bar_visible = self.get_setting("trigger_bar_visible", 1)  # 默认可见
+            if trigger_bar_visible == 1:
+                self.show_trigger_bar(self.dock_edge)
+            else:
+                # 如果设置为隐藏，则创建一个不可见的触发区域
+                self.create_invisible_trigger_area(self.dock_edge)
+        
+        # 窗口隐藏后，切换回剪贴板界面
+        QTimer.singleShot(400, lambda: self.switch_category("clipboard"))
+        
+        # 显示系统托盘图标
+        if hasattr(self, 'tray_icon'):
+            self.tray_icon.show()
 
     def check_mouse_trigger(self):
         """检查鼠标位置并根据dock_edge触发相应的弹出动画"""
@@ -4596,6 +4745,21 @@ class ModernClipboardUI(QMainWindow):
         
         # 更新标题栏颜色
         self.set_title_bar_white()
+        
+        # 更新所有打开的文字选取窗口主题
+        self.update_text_viewer_theme()
+    
+    def update_text_viewer_theme(self):
+        """更新所有打开的文字选取窗口的主题"""
+        if hasattr(self, 'message_layout'):
+            for i in range(self.message_layout.count()):
+                widget = self.message_layout.itemAt(i).widget()
+                if widget and isinstance(widget, MessageWidget):
+                    if hasattr(widget, 'text_viewer') and widget.text_viewer is not None:
+                        try:
+                            widget.text_viewer.update_theme(self.current_theme_mode)
+                        except:
+                            pass
     
     def update_message_widgets_theme(self, colors):
         """更新所有消息小部件的主题样式"""
@@ -5110,6 +5274,16 @@ class ModernClipboardUI(QMainWindow):
                 # 直接获取消息 ID
                 msg = ctypes.wintypes.MSG.from_address(int(message))
                 
+                # 0x0112 是 WM_SYSCOMMAND - 系统命令
+                if msg.message == 0x0112:
+                    # 0xF020 是 SC_MINIMIZE - 最小化命令
+                    # 0xF030 是 SC_MAXIMIZE - 最大化命令
+                    cmd = msg.wParam & 0xFFF0
+                    if cmd == 0xF020:  # SC_MINIMIZE
+                        # 拦截最小化命令，改为执行强制隐藏（不检测鼠标位置）
+                        self.force_hide()
+                        return (True, 0)  # 返回 True 表示已处理，不再执行默认行为
+                
                 # 0x0232 是 WM_EXITSIZEMOVE - 窗口移动/调整大小结束
                 if msg.message == 0x0232:
                     self.is_moving = False  # 结束移动/调整大小状态
@@ -5137,3 +5311,15 @@ class ModernClipboardUI(QMainWindow):
         self.apply_theme(self.current_theme_mode)
         # 延迟一点时间确保窗口完全显示后再更新布局
         QTimer.singleShot(100, self.update_all_message_displays)
+        
+    def changeEvent(self, event):
+        """窗口状态改变事件处理"""
+        from PySide6.QtCore import QEvent
+        if event.type() == QEvent.WindowStateChange:
+            # 检查窗口是否被最小化
+            if self.windowState() & Qt.WindowMinimized:
+                # 取消最小化状态
+                self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
+                # 执行自动隐藏动画
+                self.animate_hide()
+        super().changeEvent(event)

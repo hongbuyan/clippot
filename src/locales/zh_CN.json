@@ -184,5 +184,16 @@
   "show_all_records": "显示全部记录",
   "show_limited_records": "当前显示前 {count} 条记录",
   "load_more": "加载更多",
-  "total_records": "共 {total} 条记录"
+  "total_records": "共 {total} 条记录",
+  "text_viewer_title": "文字选取",
+  "select_all": "全选",
+  "close": "关闭",
+  "select_text_first": "请先选择文字",
+  "context_menu_select_text": "选取文字",
+  "context_menu_delete": "删除",
+  "context_menu_more": "更多",
+  "context_menu_delete_today": "删除今天",
+  "context_menu_delete_7days": "删除近7天",
+  "context_menu_delete_30days": "删除近30天",
+  "context_menu_delete_all": "删除全部"
 }
